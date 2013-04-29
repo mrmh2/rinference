@@ -1,0 +1,39 @@
+R package:
+
+R inference package
+
+Ideas:
+  * biased coin
+  * t tests
+  * 2 sets of data from different distributions
+  * 3 - 5 data points
+  a) 3 biological replicates -> 10 biological replicates w/ 2 distribution t test
+  b) Coin/die or on the fly of RNGs
+  c) test linear against not linear
+  d) MCMC GLM see what examples they use
+  e) Repressilator
+
+Pass in prior
+Graphics display
+Plot joint distributions?
+Marginals
+
+1) 
+inputs:
+data, prior, likelihood function (data, model, parameters), we get back samples from posterior and evidence
+sequence of heads
+
+2) 
+t test
+Talk to Richard
+
+3) 
+FT data linear fit against non-linear fit
+
+4)
+Repressilator
+
+5)
+Chick data?
+
+use knitr
