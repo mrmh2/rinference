@@ -1,3 +1,5 @@
+library(ggplot2)
+
 bool_to_coin <- function(b) {
   # convert boolean value to H or T, TRUE = H
 
@@ -22,6 +24,13 @@ generate_sequence <- function(n, p) {
 }
 
 uniform_prior <- function(n, bounds) {
+  # Return n samples drawn from a uniform distribution with upper and lower
+  # bounds
+
+  lower_bound <- bounds[1]
+  upper_bound <- bounds[2]
+
+  return(runif(n, lower_bound, upper_bound))
 
 }
 
@@ -36,12 +45,21 @@ coin_likelihood <- function(data, model, parameters) {
   N <- length(bool_seq)
   R <- sum(bool_seq)
 
-  H <- 0.5
+  H <- parameters
 
   likelihood <- (H ** R) * (1 - H) ** (N - R)
 
   return(likelihood)
 
 }
+
+stuff <- function() {
+  prior <- seq(0, 1, 0.01)
+  data <- c('H', 'H', 'T', 'T')
+  data <- generate_sequence(32, 0.25)
+  posterior <- sapply(prior, coin_likelihood, data=data, model=0)
+  plot(posterior, type='l')
+}
+
 
 #coin_model <- function(parameters) {
