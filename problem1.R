@@ -53,12 +53,21 @@ coin_likelihood <- function(data, model, parameters) {
 
 }
 
+slicefun <- function(inarr, n) {
+    return (inarr[1:n])
+}
+
 stuff <- function() {
   prior <- seq(0, 1, 0.01)
   data <- c('H', 'H', 'T', 'T')
   data <- generate_sequence(32, 0.25)
   posterior <- sapply(prior, coin_likelihood, data=data, model=0)
   plot(posterior, type='l')
+  plot_data <- cbind.data.frame(prior, posterior)
+myseq <- 2 ** seq(0, 12)
+md <- sapply(myseq, slicefun, inarr=data)
+
+
 }
 
 
