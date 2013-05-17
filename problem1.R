@@ -47,7 +47,10 @@ coin_likelihood <- function(data, model, parameters) {
 
   H <- parameters
 
-  likelihood <- (H ** R) * (1 - H) ** (N - R)
+  #f <- factorial(N) / (factorial(R) * factorial(N - R))
+
+  #likelihood <- f * (H ** R) * (1 - H) ** (N - R)
+  likelihood <- dbinom(R, size=N, prob=H)
 
   return(likelihood)
 
@@ -57,15 +60,30 @@ slicefun <- function(inarr, n) {
     return (inarr[1:n])
 }
 
+generate_posterior <- function(prior, coin_likelihood, data) {
+
+  posterior <- sapply(prior, coin_likelihood, data=data, model=0)
+
+  return(posterior)
+}
+
+plot_a_lot <- function(prior, data, n) {
+  for (i in 1:n) {
+    posterior <- generate_posterior(prior, coin_likelihood, data[1:i])
+    plot(posterior, type='l', yaxt='n', xlab='Bias')
+  }
+}
+
+
 stuff <- function() {
   prior <- seq(0, 1, 0.01)
   data <- c('H', 'H', 'T', 'T')
   data <- generate_sequence(32, 0.25)
-  posterior <- sapply(prior, coin_likelihood, data=data, model=0)
+  posterior <- generate_posterior(prior, coin_likelihood, data)
   plot(posterior, type='l')
   plot_data <- cbind.data.frame(prior, posterior)
-myseq <- 2 ** seq(0, 12)
-md <- sapply(myseq, slicefun, inarr=data)
+  myseq <- 2 ** seq(0, 12)
+  md <- sapply(myseq, slicefun, inarr=data)
 
 
 }
