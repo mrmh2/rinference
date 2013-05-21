@@ -1,5 +1,16 @@
 # m = 0.1, c = 0.0003
 
+# k1 / (1 + exp(-k2 * (t - k3)))
+
+logplus <- function(a, b) {
+    if (a > b) {
+        sum = a + log(1+exp(b-a))
+    } else {
+        sum = b + log(1+exp(a-b))
+    }
+    return(sum)
+}
+
 MakeStep <- function(current.values, step) {
   # Make random step in parameter space
   return(current.values + step * runif(1, -1, 1))
@@ -91,13 +102,13 @@ ftLogLikelihood <- function(model, params, data) {
 
   #slike <- dnorm(as.matrix(data[2]), mean=pred, sd=sd, log=T)
 
-  llh.sigma.factor <- 10000
+  llh.sigma.factor <- 0.1
   range <- max(actual) - min(actual)
   sigma <- range * llh.sigma.factor
 
   all_ll <- (actual - pred) ** 2
 
-  H <- -sum(all_ll) / 2 * sigma ** 2
+  H <- -sum(all_ll) / (2 * (sigma ** 2))
 
   return(H)
 
@@ -117,7 +128,7 @@ generate_a_prior <- function(prior.lower.bounds, prior.upper.bounds) {
 
 evidence <- function(llFun, posterior.size) {
   
-  prior.size <- 10
+  prior.size <- 100
   prior.lower.bounds <- c(0, 0)
   prior.upper.bounds <- c(0.5, 0.001)
   llFun <- function(params) {
@@ -165,19 +176,20 @@ evidence <- function(llFun, posterior.size) {
     ordered.samples <- ordered.samples[,order(ordered.samples[1,])]
   }
 
-  Z <- 0
+  logZ <- -1e300
   Xlast <- 1
-  for (i in 1:posterior.size) {
+  for (i in 1:(posterior.size)) {
     lL <- posterior.samples[1,i]
     X <- exp(-i / prior.size)
     lw <- log(Xlast - X)
+    #cat(lw, ' ', lL, ' ', logZ + lw + lL, '\n')
 
-    Z <- Z + exp(lw + lL)
+    logZ <- logplus(logZ, lw + lL)
 
     Xlast <- X    
   }
 
-  return(list(evidence=Z, posterior=posterior.samples))
+  return(list(logevidence=logZ, posterior=posterior.samples))
 
 }
 
