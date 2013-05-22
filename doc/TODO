@@ -1,1 +1,3 @@
-Fix for per-parameter boundaries
+* Fix for per-parameter boundaries DONE
+* Structure code more nicely
+* Fix machine precision problems

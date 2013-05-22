@@ -3,7 +3,29 @@ source('flowering.R')
 
 context("Testing flowering time code")
 
-test_that("calculateEvidence works", {
+test_that("linearModel works", {
+  x <- seq(0, 1, 0.01)
+  
+  linear.params <- c(1, 0.5)
+  y.linear <- linearModel(linear.params, x)
+  y.exact <- seq(0.5, 1.5, 0.01)
+
+  expect_equal(y.exact, y.linear)
+})
+
+test_that("sigmoidModel works", {
+  x <- seq(0, 1, 0.01)
+  
+  sigmoidal.params <- c(1, 10, 0.5)
+  y.sigmoidal <- sigmoidModel(sigmoidal.params, x)
+  #plot(x, y.sigmoidal, type='l')
+
+  expect_equal(y.sigmoidal[10], 0.0163025, tolerance=0.0001)
+  expect_equal(y.sigmoidal[51], 0.5, tolerance=0.0001)
+  expect_equal(y.sigmoidal[90], 0.9801597, tolerance=0.0001)
+})
+
+test_that("nestedSampling works", {
 
   set.seed(0)
   
@@ -18,10 +40,17 @@ test_that("calculateEvidence works", {
   linearModelLlFun <- function(params) { 
     return(generalLogLikelihood(linearModel, params, data, llh.sigma.factor))
   }
+
+  lower.bounds <- prior.lower.bounds
+  upper.bounds <- prior.upper.bounds
+  bounds <- cbind(lower.bounds, upper.bounds)
   
-  ret <- calculateEvidence(linearModelLlFun, 20, prior.samples)
-
+  steps <- c(0.01, 0.0001)
+  ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, 20, steps=steps)
   logevidence <- ret$logevidence
-
   expect_equal(logevidence, -134.0461, tolerance=0.01)
+
+  ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, 20)
+  logevidence <- ret$logevidence
+  expect_equal(logevidence, -101.6245, tolerance=0.01)
 })

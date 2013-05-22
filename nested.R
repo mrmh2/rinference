@@ -118,25 +118,44 @@ generateAPrior <- function(prior.lower.bounds, prior.upper.bounds) {
   return(prior)
 }
 
-calculateEvidence <- function(llFun, posterior.size, prior.samples) {
-  # Args:
-  #  llFun - the loglikelihood function, which should be of the form:
-  #          llFun(params) where params is a vector containing a single
-  #          instance of parameters, and should return the log likelihood
-  #          for those parameters
+calculateEvidence <- function(posterior.samples, prior.size) {
+  # Calculates the evidence from the set of posterior samples with
+  # loglikelihoods.
   #
+  # Args:
+  #  posterior.samples: The posterior samples, together with log likelihoods 
+  #                     as an m x n matrix, where m is the number of parameters
+  #                     plus one and n is the number of posterior samples. The
+  #                     first row of the matrix should be the log likelihoods.
+  #  prior.size:        The numbers of samples in the prior.
+  #
+  # Returns:
+  #   The evidence, a scalar.
 
-  prior.size = dim(prior.samples)[2]
-  
-  ll.values <- apply(prior.samples, 2, llFun)
-  evaluated.samples = rbind(ll.values, prior.samples)
-  ordered.samples <- evaluated.samples[,order(evaluated.samples[1,])]
+  # FIXME - problems with machine precision for some reason?
+  #logZ <- -.Machine$double.xmin
+  posterior.size <- dim(posterior.samples)[2]
+  logZ <- -2.2e308
+  Xlast <- 1
+  for (i in 1:posterior.size) {
+    lL <- posterior.samples[1,i]
+    X <- exp(-i / prior.size)
+    lw <- log(Xlast - X)
 
-  lower.bounds <- c(0, 0)
-  upper.bounds <- c(0.5, 0.001)
-  steps <- c(0.01, 0.0001)
+    logZ <- logPlus(logZ, lw + lL)
+
+    Xlast <- X    
+  }
+
+  return(logZ)
+}
+
+calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
+                               lower.bounds, upper.bounds) {
+  # Generate the posterior samples for the given model.
 
   # Initialise an empty matrix to hold posterior samples & their loglikelihoods
+  prior.size = dim(ordered.samples)[2]
   posterior.samples <- matrix(nrow=3)
   first <- TRUE
 
@@ -152,7 +171,7 @@ calculateEvidence <- function(llFun, posterior.size, prior.samples) {
     # Randomly select a sample that isn't the worst
     selected.point <- sample(2:prior.size, 1)
 
-    # Explore around that point
+    # Explore around that point, updating step size as we go
     llMin <- min(ordered.samples[1,])
     ret <- explore(ordered.samples[2:3,selected.point], steps, llMin, llFun, lower.bounds, upper.bounds)
     steps <- ret$new.step
@@ -166,19 +185,59 @@ calculateEvidence <- function(llFun, posterior.size, prior.samples) {
     ordered.samples <- ordered.samples[,order(ordered.samples[1,])]
   }
 
-  #logZ <- .Machine$double.xmin
-  logZ <- -1e300
-  Xlast <- 1
-  for (i in 1:posterior.size) {
-    lL <- posterior.samples[1,i]
-    X <- exp(-i / prior.size)
-    lw <- log(Xlast - X)
-    #cat(lw, ' ', lL, ' ', logZ + lw + lL, '\n')
+  return(posterior.samples)
+}
 
-    logZ <- logPlus(logZ, lw + lL)
+nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, steps=NULL) {
+  # Perform nested sampling for the given model (expressed through the log
+  # likelihood function).
+  #
+  # Args:
+  #   llFun:          The loglikelihood function, which should be of the form:
+  #                   llFun(params) where params is a vector containing a single
+  #                   instance of parameters, and should return the log 
+  #                   likelihood for those parameters.
+  #   prior.samples:  The samples from the prior, as a m x n matrix, where m is
+  #                   the number of parameters + 1 and n is the size of the 
+  #                   prior.
+  #   bounds:         The bounds of the parameter values, as a m x 2 matrix, 
+  #                   where m is the number of parameters, the first column is 
+  #                   the lower bounds and .the second the upper bounds
+  #   posterior.size: The number of desired sample points in the posterior to
+  #                   be calculated.
+  #   steps:          A vector of the initial step sizes to use for exploring
+  #                   the parameter space, of size m where m is the number of
+  #                   parameters.
+  #
+  # Returns:
+  #   logevidence:       The logarithm of the evidence - P(model|data).
+  #   posterior.samples: The samples from the posterior, together with their
+  #                      log likelihoods as a m x n matrix, where m is the
+  #                      number of parameters + 1 and n is the number of
+  #                      posterior samples. The log likelhood values are the
+  #                      top row of this matrix.
 
-    Xlast <- X    
+  prior.size = dim(prior.samples)[2]
+  
+  # Calculate the log likelihoods for the prior samples
+  ll.values <- apply(prior.samples, 2, llFun)
+  evaluated.samples = rbind(ll.values, prior.samples)
+  ordered.samples <- evaluated.samples[,order(evaluated.samples[1,])]
+
+  lower.bounds <- bounds[,1]
+  upper.bounds <- bounds[,2]
+
+  # If steps is not set calculate from range of bounds
+  if (is.null(steps)) {
+    steps <- (upper.bounds - lower.bounds) / 100
   }
+
+  # Generate the posterior samples
+  posterior.samples <- calculatePosterior(posterior.size, ordered.samples,
+    steps, llFun, lower.bounds, upper.bounds)
+
+  # Calculate the evidence from the posterior samples
+  logZ <- calculateEvidence(posterior.samples, prior.size)
 
   return(list(logevidence=unname(logZ), posterior=posterior.samples))
 

@@ -3,7 +3,22 @@ source('nested.R')
 
 # k1 / (1 + exp(-k2 * (t - k3)))
 
-#sigmoidModel <- function(
+sigmoidModel <- function(params, inputdata) {
+  # Computes the output of a sigmoidal model of the inputdata
+  #
+  # Args:
+  #  params: A vector of length three containing the parameters.
+  #  inputdata: A vector of the input data to be modelled.
+  #
+  # Returns:
+  #  The predicted data according to the model k1 / (1 + exp(-k2 * (t - k3)))
+
+  k1 <- params[1]
+  k2 <- params[2]
+  k3 <- params[3]
+
+  return(k1 / (1 + exp(-k2 * (inputdata - k3))))
+}
 
 linearModel <- function(params, inputdata) {
   # Computes the output of a linear model of the inputdata
