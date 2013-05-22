@@ -134,10 +134,10 @@ calculateEvidence <- function(posterior.samples, prior.size) {
 
   # FIXME - problems with machine precision for some reason?
   #logZ <- -.Machine$double.xmin
-  posterior.size <- dim(posterior.samples)[2]
+  posterior.size <- ncol(posterior.samples)
   logZ <- -2.2e308
   Xlast <- 1
-  for (i in 1:posterior.size) {
+  for (i in 1:(posterior.size-prior.size)) {
     lL <- posterior.samples[1,i]
     X <- exp(-i / prior.size)
     lw <- log(Xlast - X)
@@ -145,6 +145,11 @@ calculateEvidence <- function(posterior.samples, prior.size) {
     logZ <- logPlus(logZ, lw + lL)
 
     Xlast <- X    
+  }
+
+  for (i in 1:prior.size) {
+    lL <- posterior,samples[1, i + posterior.size - prior.size]
+    logZ <- logPlus(logZ, lw + lL)
   }
 
   return(logZ)
@@ -155,11 +160,11 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
   # Generate the posterior samples for the given model.
 
   # Initialise an empty matrix to hold posterior samples & their loglikelihoods
-  prior.size = dim(ordered.samples)[2]
-  posterior.samples <- matrix(nrow=3)
+  prior.size = ncol(ordered.samples)
+  posterior.samples <- matrix(nrow=nrow(ordered.samples))
   first <- TRUE
 
-  while ( dim(posterior.samples)[2] < posterior.size ) {
+  while ( ncol(posterior.samples) < posterior.size ) {
     # Add the worst sample to the posterior samples
     if ( first ) {
       posterior.samples[,1] <- ordered.samples[,1]
@@ -173,7 +178,8 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
 
     # Explore around that point, updating step size as we go
     llMin <- min(ordered.samples[1,])
-    ret <- explore(ordered.samples[2:3,selected.point], steps, llMin, llFun, lower.bounds, upper.bounds)
+    ret <- explore(ordered.samples[2:nrow(ordered.samples),selected.point], 
+           steps, llMin, llFun, lower.bounds, upper.bounds)
     steps <- ret$new.step
     new.point <- ret$new.values
     new.ll <- ret$new.ll
@@ -217,7 +223,7 @@ nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, steps=N
   #                      posterior samples. The log likelhood values are the
   #                      top row of this matrix.
 
-  prior.size = dim(prior.samples)[2]
+  prior.size = ncol(prior.samples)
   
   # Calculate the log likelihoods for the prior samples
   ll.values <- apply(prior.samples, 2, llFun)
