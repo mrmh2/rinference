@@ -53,11 +53,6 @@ explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bou
   # Explore parameter space around supplied point
   # returns new point and new step size
   msub <- 20
-  # FIXME - hardcoded the system below...
-  #llFun = llMaker(initial.conditions, times, true.data, repress)
-  #llFun <- function(params) {
-  #  return(ftLogLikelihood(NULL, params, data))
-  #}
 
   accepted <- vector()
   for(i in 1:msub) {
@@ -114,7 +109,7 @@ ftLogLikelihood <- function(model, params, data) {
 
 }
 
-generate_a_prior <- function(prior.lower.bounds, prior.upper.bounds) {
+GenerateAPrior <- function(prior.lower.bounds, prior.upper.bounds) {
 
   n <- length(prior.upper.bounds)
   prior <- numeric(n)
@@ -126,18 +121,8 @@ generate_a_prior <- function(prior.lower.bounds, prior.upper.bounds) {
   return(prior)
 }
 
-evidence <- function(llFun, posterior.size) {
+CalculateEvidence <- function(llFun, posterior.size, prior.samples) {
   
-  prior.size <- 100
-  prior.lower.bounds <- c(0, 0)
-  prior.upper.bounds <- c(0.5, 0.001)
-  llFun <- function(params) {
-    return(ftLogLikelihood(NULL, params, data))
-  }
-  #prior.samples = replicate(prior.size, prior(prior.min, prior.max, n.params))
-
-  prior.samples <- replicate(prior.size, generate_a_prior(prior.lower.bounds, prior.upper.bounds))
-  #ll.values <- apply(prior.samples, 2, llFun, model=NULL, data=data)
   ll.values <- apply(prior.samples, 2, llFun)
   evaluated.samples = rbind(ll.values, prior.samples)
   ordered.samples <- evaluated.samples[,order(evaluated.samples[1,])]
@@ -178,7 +163,7 @@ evidence <- function(llFun, posterior.size) {
 
   logZ <- -1e300
   Xlast <- 1
-  for (i in 1:(posterior.size)) {
+  for (i in 1:posterior.size) {
     lL <- posterior.samples[1,i]
     X <- exp(-i / prior.size)
     lw <- log(Xlast - X)
@@ -197,5 +182,12 @@ data <- read.csv('data/flowering-data.csv', sep=',', header=T)
 
 params = c(0.1, 0.0003)
 
+FTllFun <- function(params) { 
+  return(ftLogLikelihood(NULL, params, data)) 
+}
 
-
+prior.size <- 100
+prior.lower.bounds <- c(0, 0)
+prior.upper.bounds <- c(0.5, 0.001)
+prior.samples <- replicate(prior.size, GenerateAPrior(prior.lower.bounds, prior.upper.bounds))
+ 
