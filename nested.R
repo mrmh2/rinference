@@ -97,6 +97,16 @@ prior <- function(  xmin, xmax, n) {
     return( runif(n, xmin, xmax) )
 }
 
+generatePriorSamples <- function(n.samples, bounds)  {
+
+  prior.lower.bounds <- bounds[,1]
+  prior.upper.bounds <- bounds[,2]
+
+  prior.samples <- replicate(n.samples,  generateAPrior(prior.lower.bounds, prior.upper.bounds))
+
+  return(prior.samples)
+}
+
 generateAPrior <- function(prior.lower.bounds, prior.upper.bounds) {
   # Generate a single prior drawn from the uniform distribution
   # 
@@ -148,7 +158,7 @@ calculateEvidence <- function(posterior.samples, prior.size) {
   }
 
   for (i in 1:prior.size) {
-    lL <- posterior,samples[1, i + posterior.size - prior.size]
+    lL <- posterior.samples[1, i + posterior.size - prior.size]
     logZ <- logPlus(logZ, lw + lL)
   }
 

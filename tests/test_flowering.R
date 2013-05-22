@@ -1,5 +1,6 @@
 setwd('../')
-source('flowering.R')
+source('nested.R')
+source('models.R')
 
 context("Testing flowering time code")
 
@@ -23,6 +24,9 @@ test_that("sigmoidModel works", {
   expect_equal(y.sigmoidal[10], 0.0163025, tolerance=0.0001)
   expect_equal(y.sigmoidal[51], 0.5, tolerance=0.0001)
   expect_equal(y.sigmoidal[90], 0.9801597, tolerance=0.0001)
+})
+
+test_that("prior generation works", {
 })
 
 test_that("nestedSampling works", {

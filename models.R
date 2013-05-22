@@ -1,4 +1,3 @@
-source('nested.R')
 # m = 0.1, c = 0.0003
 
 # k1 / (1 + exp(-k2 * (t - k3)))
