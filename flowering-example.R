@@ -65,8 +65,8 @@ sigmoidalModelLlFun <- function(params) {
 
 # Set the prior size and bounds, then generate a set of prior samples
 prior.size <- 20
-prior.lower.bounds <- c(0.001, 500, 0.005)
-prior.upper.bounds <- c(0.002, 1500, 0.01)
+prior.lower.bounds <- c(0, 0, 0)
+prior.upper.bounds <- c(0.002, 1500, 0.05)
 prior.bounds = cbind(prior.lower.bounds, prior.upper.bounds)
 prior.samples <- generatePriorSamples(prior.size, prior.bounds)
 
@@ -91,5 +91,19 @@ plot(x, y.sigmoidal, type='l')
 
 # Display the evidence
 cat('log evidence = ', ret$logevidence, '\n')
+
+# Calculate fit using R's fitting function
+
+sigfit <- nls(y.actual ~ k1 / (1 + exp(-k2 * (x - k3))), 
+            start=list(k1=0.0015, k2=1000, k3=0.0075))
+
+fit.params <- coef(sigfit)
+y.fit <- sigmoidModel(fit.params, x)
+par(new=T)
+plot(x, y.fit, type='l')
+
+
+
+
 
 
