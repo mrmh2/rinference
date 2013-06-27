@@ -63,28 +63,31 @@ explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bou
   # Explore parameter space around supplied point
   # returns new point and new step size
   msub <- 20
+  m <- 5
 
-  accepted <- vector()
-  for(i in 1:msub) {
-    ret <- makeMcmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds)
-    accepted <- cbind(accepted, ret$accepted)
-    current.values <- ret$new.values
-  }
-
-  # DEBUG
-  #cat(sum(accepted[1,]), " ", sum(accepted[2,]), "\n")
-
-  for(i in 1:length(current.values)) {
-    ratio <- sum(accepted[i,]) / length(accepted[i,])
-    if (ratio > 0.6) {
-        steps[i] <- steps[i] * (1 + 2 * (ratio - 0.6) / 0.4)
+  for(k in 1:m) {
+    accepted <- vector()
+    for(i in 1:msub) {
+      ret <- makeMcmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds)
+      accepted <- cbind(accepted, ret$accepted)
+      current.values <- ret$new.values
     }
-    if (ratio < 0.4) {
-        steps[i] <- steps[i] / (1 + 2 * ((0.4 - ratio) / 0.4))
+  
+    # DEBUG
+    #cat(sum(accepted[1,]), " ", sum(accepted[2,]), "\n")
+  
+    for(i in 1:length(current.values)) {
+      ratio <- sum(accepted[i,]) / length(accepted[i,])
+      if (ratio > 0.6) {
+          steps[i] <- steps[i] * (1 + 2 * (ratio - 0.6) / 0.4)
+      }
+      if (ratio < 0.4) {
+          steps[i] <- steps[i] / (1 + 2 * ((0.4 - ratio) / 0.4))
+      }
+      steps[i] <- min(steps[i], 0.1 * (upper.bounds[i] - lower.bounds[i]))
+  
+      #cat(sprintf("%f, %f\n", ratio, step[i]))
     }
-    steps[i] <- min(steps[i], 0.1 * (upper.bounds[i] - lower.bounds[i]))
-
-    #cat(sprintf("%f, %f\n", ratio, step[i]))
   }
 
   return(list(new.values=current.values, new.step=steps, new.ll=llFun(current.values)))
