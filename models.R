@@ -1,22 +1,21 @@
 # m = 0.1, c = 0.0003
 
-# k1 / (1 + exp(-k2 * (t - k3)))
-
 sigmoidModel <- function(params, inputdata) {
   # Computes the output of a sigmoidal model of the inputdata
   #
   # Args:
-  #  params: A vector of length three containing the parameters.
+  #  params: A vector of length four containing the parameters.
   #  inputdata: A vector of the input data to be modelled.
   #
   # Returns:
-  #  The predicted data according to the model k1 / (1 + exp(-k2 * (t - k3)))
+  #  The predicted data according to the model k4 + (k4 - k1) / (1 + exp(-k2 * (t - k3)))
 
   k1 <- params[1]
   k2 <- params[2]
   k3 <- params[3]
+  k4 <- params[4]
 
-  return(k1 / (1 + exp(-k2 * (inputdata - k3))))
+  return(k4 + (k4 - k1) / (1 + exp(-k2 * (inputdata - k3))))
 }
 
 linearModel <- function(params, inputdata) {
@@ -33,6 +32,23 @@ linearModel <- function(params, inputdata) {
   c <- params[2]
 
   return(m * inputdata + c)
+}
+
+quadraticModel <- function(params, inputdata) {
+  # Computes the output of a quadratic model of the inputdata
+  #
+  # Args:
+  #  params: A vector of length three containing the parameters alpha, beta and gamma.
+  #  inputdata: A vector of the input data to be modelled.
+  #
+  # Returns:
+  #  The predicted data according to the model y = alpha*x^2 + beta * x + gamma
+
+  alpha <- params[1]
+  beta <- params[2]
+  gamma <- params[3]
+
+  return(alpha*inputdata*inputdata + beta*inputdata + gamma)
 }
 
 generalLogLikelihood <- function(model, params, data, llh.sigma.factor) {
