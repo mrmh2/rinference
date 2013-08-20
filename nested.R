@@ -20,6 +20,42 @@ makeStep <- function(current.values, step) {
   return(current.values + step * runif(1, -1, 1))
 }
 
+#makeHMCStep <- function(current.values, step) {
+#  # Make random step in parameter space using HMC as given by Mackay pg 388, Algo 30.1
+## but with changes taken from http://www.cs.utoronto.ca/~radford/ham-mcmc-simple
+## Radford uses U where Mackay uses E. H = E + K. Here t(p)*p/2 = K.
+#grad.current.vals = gradE(current.values) # gradE needs to be a fn. Look into numDeriv, or work out expression for gradient e.g. dE/dt = (x-mu)/sigma^2 ??
+#E = llFun(current.values) #may need to be -ve
+## for (l in 1:L) {
+#p = rnorm(length(current.values),0,1)
+#Hcurrent = t(p)*p/2 + E
+#new.values = current.values
+#grad.new.vals = grad.current.vals
+#for (tau = 1:leapfrogSteps) {
+#p = p - epsilon*grad.new.vals/2
+#new.values = new.values + epsilon*p # Make a full step for the position
+#grad.new.vals = gradE ( new.values ) # find new gradient
+#p = p - epsilon * grad.new.vals / 2
+#}
+#
+#Enew = llFun(new.values)
+#Hnew = t(p)*p/2 + Enew
+#dH = Hnew - H
+#if (dH < 0){
+#    accept =1 }
+#else if (runif(1) < exp(-dH)){
+#    accept =1}
+#else accept =0
+#
+#if (accept){ 
+#grad.current.vals = grad.new.vals
+#current.values = new.values
+#E = Enew.llFunscore
+##}
+#}
+#  return(current.values)
+#}
+#
 makeBoundedStep <- function(current.values, step, lower.bounds, upper.bounds) {
   # Make step in parameter space. If step exceeds bounds, instead pick point in
   # space randomly chosen using uniform distribution.
