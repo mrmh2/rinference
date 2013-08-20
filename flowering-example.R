@@ -9,7 +9,8 @@ source('models.R')
 #############################################################
 
 # Load the flowering time data
-data <- read.csv('data/flowering-data.csv', sep=',', header=T)
+#data <- read.csv('data/flowering-data.csv', sep=',', header=T)
+data <- read.table('data/TFL1-FT-data', header=FALSE)
 
 # Generate the log likelihood function for a linear model for our data
 llh.sigma.factor <- 0.1
@@ -18,8 +19,9 @@ linearModelLlFun <- function(params) {
 }
 
 # Set the prior size and bounds, then generate a set of prior samples
-prior.size <- 20
-prior.bounds <- matrix(c(0, 0, 0.5, 0.001), nrow=2, ncol=2)
+prior.size <- 25
+#prior.bounds <- matrix(c(0, 0, 0.2, 0.025), nrow=2, ncol=2) #test bounds to show problem, don't use otherwise!
+prior.bounds <- matrix(c(0, 0, 0.5, 0.5), nrow=2, ncol=2)
 prior.samples <- generatePriorSamples(prior.size, prior.bounds)
 
 # Set the bounds for the parameter exploration
@@ -33,18 +35,20 @@ ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples
 posterior <- ret$posterior
 
 # Plot the data, along with the linear model generated 
-plot(data)
-abline(posterior[3, posterior.samples], posterior[2, posterior.samples])
+#plot(data)
+#abline(posterior[3, posterior.samples], posterior[2, posterior.samples])
 
 # Display the evidence
 cat('log evidence = ', ret$logevidence, '\n')
 
 # Find the best set of parameters
 best.params <- posterior[2:3, posterior.samples]
+cat('best NS params =', rev(best.params), '\n')
 
 # Find the exact parameters via R's linear model fitting function
 lm.results <- lm(as.matrix(data[2]) ~ as.matrix(data[1]))
 lm.coefficients <- unname(lm.results$coefficients)
+cat('lm coefficients=',lm.coefficients, '\n')
 
 # Calculate the percentage error in our parameter estimates
 param.error <-(rev(best.params) - lm.coefficients) / lm.coefficients

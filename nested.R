@@ -31,7 +31,7 @@ makeStep <- function(current.values, step) {
 #Hcurrent = t(p)*p/2 + E
 #new.values = current.values
 #grad.new.vals = grad.current.vals
-#for (tau = 1:leapfrogSteps) {
+#for (tau in 1:leapfrogSteps) {
 #p = p - epsilon*grad.new.vals/2
 #new.values = new.values + epsilon*p # Make a full step for the position
 #grad.new.vals = gradE ( new.values ) # find new gradient
@@ -59,13 +59,16 @@ makeStep <- function(current.values, step) {
 makeBoundedStep <- function(current.values, step, lower.bounds, upper.bounds) {
   # Make step in parameter space. If step exceeds bounds, instead pick point in
   # space randomly chosen using uniform distribution.
-
   step.attempt <- makeStep(current.values, step)
   # Generate vector of booleans that are true where we exceed bounds
   outside.bounds <- (step.attempt < lower.bounds) + (step.attempt > upper.bounds) > 0
   # Replace values outside the bounds by randomly chosen point in parameter space
-  step.attempt[which(outside.bounds)] = runif(1, lower.bounds, upper.bounds)
-
+#cat("low",lower.bounds,"upp", upper.bounds, "out", outside.bounds,"\n")
+#cat("which",which(outside.bounds),"stepwhcih", step.attempt[which(outside.bounds)], "\n")
+  step.attempt[which(outside.bounds)] = runif(1, lower.bounds[which(outside.bounds)], upper.bounds[which(outside.bounds)])
+#cat("step1",step.attempt,"\n")
+#  step.attempt[which(outside.bounds)] = runif(1, lower.bounds, upper.bounds)
+#cat("step2",step.attempt,"\n")
   return(step.attempt)
 }
 
@@ -79,7 +82,6 @@ makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, uppe
   #    accepted: a vector of boolean values describing whether each parameter's
   #              step was accepted
   #    new.values: a vector of the new parameter values after the step
-
   n <- length(current.values)
   accepted <- rep(FALSE, n)
   for (i in 1:n) {
@@ -286,7 +288,6 @@ nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, steps=N
   if (is.null(steps)) {
     steps <- (upper.bounds - lower.bounds) / 100
   }
-
   # Generate the posterior samples
   posterior.samples <- calculatePosterior(posterior.size, ordered.samples,
     steps, llFun, lower.bounds, upper.bounds)
