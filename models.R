@@ -79,3 +79,28 @@ generalLogLikelihood <- function(model, params, data, llh.sigma.factor) {
   return(H)
 
 }
+
+gradLogLikelihood <- function(model, params, data, llh.sigma.factor) {
+  # IMPORTANT: THIS COULD VERY LIKELY BE WRONG!!!
+  # Calculates the gradient of the log likelihood
+  #
+  # Args:
+  #  model: A function taking the parameters and first column of data matrix
+  #         as input, and returning the predicted data.
+  #  params: A vector of the parameters for the model.
+  #  data: A data set containing the data to be fitted in the first column and
+  #        the observed values in the second column.
+  #  llh.sigma.factor: A scalar giving the sigma factor to be used
+  #
+  # Returns:
+  #  grad: The gradient
+
+  pred <- model(params, as.matrix(data[1]))
+  actual <- as.matrix(data[2])
+
+  sigma <- 1
+
+  grad <- (actual - pred) / sigma ** 2
+
+  return(-sum(grad))
+}

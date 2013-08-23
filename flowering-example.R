@@ -18,6 +18,10 @@ linearModelLlFun <- function(params) {
   return(generalLogLikelihood(linearModel, params, data, llh.sigma.factor))
 }
 
+gradLinearModel <- function(params) {
+  return(gradLogLikelihood(linearModel, params, data, llh.sigma.factor))
+}
+
 # Set the prior size and bounds, then generate a set of prior samples
 prior.size <- 25
 #prior.bounds <- matrix(c(0, 0, 0.2, 0.025), nrow=2, ncol=2) #test bounds to show problem, don't use otherwise!
@@ -31,7 +35,10 @@ bounds <- prior.bounds
 posterior.samples <- 200
 
 # Call the nested sampling routine - this returns the posterior and log evidence
-ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples)
+#ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples)
+#ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples, mcmcMethod='HMC')
+#ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples, gradLinearModel)
+ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples, gradLinearModel, mcmcMethod='HMC')
 posterior <- ret$posterior
 
 # Plot the data, along with the linear model generated 

@@ -20,56 +20,90 @@ makeStep <- function(current.values, step) {
   return(current.values + step * runif(1, -1, 1))
 }
 
-#makeHMCStep <- function(current.values, step) {
-#  # Make random step in parameter space using HMC as given by Mackay pg 388, Algo 30.1
-## but with changes taken from http://www.cs.utoronto.ca/~radford/ham-mcmc-simple
-## Radford uses U where Mackay uses E. H = E + K. Here t(p)*p/2 = K.
-#grad.current.vals = gradE(current.values) # gradE needs to be a fn. Look into numDeriv, or work out expression for gradient e.g. dE/dt = (x-mu)/sigma^2 ??
-#E = llFun(current.values) #may need to be -ve
-## for (l in 1:L) {
-#p = rnorm(length(current.values),0,1)
-#Hcurrent = t(p)*p/2 + E
-#new.values = current.values
-#grad.new.vals = grad.current.vals
-#for (tau in 1:leapfrogSteps) {
-#p = p - epsilon*grad.new.vals/2
-#new.values = new.values + epsilon*p # Make a full step for the position
-#grad.new.vals = gradE ( new.values ) # find new gradient
-#p = p - epsilon * grad.new.vals / 2
-#}
-#
-#Enew = llFun(new.values)
-#Hnew = t(p)*p/2 + Enew
-#dH = Hnew - H
-#if (dH < 0){
-#    accept =1 }
-#else if (runif(1) < exp(-dH)){
-#    accept =1}
-#else accept =0
-#
-#if (accept){ 
-#grad.current.vals = grad.new.vals
-#current.values = new.values
-#E = Enew.llFunscore
-##}
-#}
-#  return(current.values)
-#}
-#
 makeBoundedStep <- function(current.values, step, lower.bounds, upper.bounds) {
   # Make step in parameter space. If step exceeds bounds, instead pick point in
   # space randomly chosen using uniform distribution.
   step.attempt <- makeStep(current.values, step)
-  # Generate vector of booleans that are true where we exceed bounds
-  outside.bounds <- (step.attempt < lower.bounds) + (step.attempt > upper.bounds) > 0
-  # Replace values outside the bounds by randomly chosen point in parameter space
-#cat("low",lower.bounds,"upp", upper.bounds, "out", outside.bounds,"\n")
-#cat("which",which(outside.bounds),"stepwhcih", step.attempt[which(outside.bounds)], "\n")
-  step.attempt[which(outside.bounds)] = runif(1, lower.bounds[which(outside.bounds)], upper.bounds[which(outside.bounds)])
-#cat("step1",step.attempt,"\n")
-#  step.attempt[which(outside.bounds)] = runif(1, lower.bounds, upper.bounds)
-#cat("step2",step.attempt,"\n")
+  # Replace value outside the bounds by randomly chosen point in parameter space
+  if((step.attempt < lower.bounds) + (step.attempt > upper.bounds) > 0) {
+    step.attempt = runif(1, lower.bounds, upper.bounds)
+  }
+  #step.attempt[which(outside.bounds)] = runif(1, lower.bounds, upper.bounds)
   return(step.attempt)
+}
+
+##!!!!!!! Move to models.R. Need to pass this though from 
+# ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples)
+# in flowering-model.R to explore. Put check in explore that if method=HMC we have
+# this required grad function otherwise stop()
+#gradE <- function(current.values) {
+#  # Calculate gradient for HMC routine using current parameter values
+#  return(1)
+#}
+
+makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradE) {
+  # Make random step in parameter space using HMC as given by Mackay pg 388, Algo 30.1
+  # but with changes taken from http://www.cs.utoronto.ca/~radford/ham-mcmc-simple
+  # Radford uses U where Mackay uses E. H = E + K. Here t(p)*p/2 = K.
+  # 
+  # Returns:
+  #   A list containing:
+  #    accepted: a placeholder currently - might want to think about adaptive step sizes in future (Neal Sec. 5.4)
+  #    new.values: a vector of the new parameter values after the step
+  nick <- current.values # without this my code can break!! (current.values sometimes set to NA with many problems esp.llMin not existing)
+  leapfrogSteps <- 10# number of leapfrog steps in HMC
+  Loop = 20#100 number of iterations
+  epsilon = 0.001#The stepsize to use for the leapfrog steps # NOTE: Requires lots of manual tuning along with leapfrogsteps
+  grad.current.vals <- -gradE(current.values) # gradE needs to be a fn. Look into numDeriv, or work out expression for gradient e.g. dE/dt = (x-mu)/sigma^2 ??
+  E <- -llFun(current.values) #may need to be -ve 
+ 
+  candidate <- array(,dim=c(Loop, length(current.values) +1))#array of all (if exist) accepted params and llhoods in this HMC run
+
+  # HMC loop
+  for (hoop in 1:Loop) {
+    p <- rnorm(length(current.values),0,1)
+    Hcurrent <- t(p)%*%p/2 + E
+    new.values <- current.values
+    grad.new.vals <- grad.current.vals
+    for (tau in 1:leapfrogSteps) {
+      p <- p - epsilon*grad.new.vals/2
+      new.values <- new.values + epsilon*p # Make a full step for the position
+      grad.new.vals <- -gradE( new.values ) # find new gradient
+      p <- p - epsilon * grad.new.vals / 2
+    }
+  
+    Enew.llFunscore <- -llFun(new.values)
+    Hnew <- t(p)%*%p/2 + Enew.llFunscore
+
+    # Acceptance based on Metropolis criteria. Should try to simplify like Radford has it.
+    dH <- Hnew - Hcurrent
+    if (dH < 0) {
+      accept =1
+    } else if (runif(1) < exp(-dH)) {
+      accept =1
+    } else {
+      accept =0
+    }
+  
+    if (accept) { 
+      grad.current.vals <- grad.new.vals
+      current.values <- new.values
+      E <- Enew.llFunscore
+      # If we accept an HMC param set lets check if it satisfies the NS likelihood criterion
+      if(-E > llMin) {
+        candidate[hoop,] <- c(current.values,-E)
+      } 
+    }
+  }
+
+  accepted <- vector()#Just put this so I don't get an error!
+  # If no param sets were accepted candidate will be full of NAs, so go back to original set
+  if(all(is.na(candidate))) {
+    current.values <- nick
+  } else {
+    current.values <- candidate[which.max(candidate[,ncol(candidate)]),-ncol(candidate)]
+  }
+  return(list(accepted=accepted, new.values=current.values))
 }
 
 makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper.bounds) {
@@ -85,10 +119,9 @@ makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, uppe
   n <- length(current.values)
   accepted <- rep(FALSE, n)
   for (i in 1:n) {
-    empty <- rep(0, n)
-    empty[i] <- steps[i]
+    candidate <- current.values
     # Attempt step along one axis in parameter space
-    candidate <- makeBoundedStep(current.values, empty, lower.bounds, upper.bounds)
+    candidate[i] <- makeBoundedStep(current.values[i], steps[i], lower.bounds[i], upper.bounds[i])
     if(llFun(candidate) > llMin) {
       current.values <- candidate
       accepted[i] = TRUE
@@ -97,37 +130,44 @@ makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, uppe
   return(list(accepted=accepted, new.values=current.values))
 }
 
-explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bounds) {
+explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bounds, gradFun=NULL, mcmcMethod=NULL) {
   # Explore parameter space around supplied point
   # returns new point and new step size
+  if(is.null(mcmcMethod)){
   msub <- 20
   m <- 5
 
-  for(k in 1:m) {
-    accepted <- vector()
-    for(i in 1:msub) {
-      ret <- makeMcmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds)
-      accepted <- cbind(accepted, ret$accepted)
-      current.values <- ret$new.values
-    }
-  
-    # DEBUG
-    #cat(sum(accepted[1,]), " ", sum(accepted[2,]), "\n")
-  
-    for(i in 1:length(current.values)) {
-      ratio <- sum(accepted[i,]) / length(accepted[i,])
-      if (ratio > 0.6) {
-          steps[i] <- steps[i] * (1 + 2 * (ratio - 0.6) / 0.4)
+    for(k in 1:m) {
+      accepted <- vector()
+      for(i in 1:msub) {
+        ret <- makeMcmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds)
+        accepted <- cbind(accepted, ret$accepted)
+        current.values <- ret$new.values
       }
-      if (ratio < 0.4) {
-          steps[i] <- steps[i] / (1 + 2 * ((0.4 - ratio) / 0.4))
+    
+      # DEBUG
+      #cat(sum(accepted[1,]), " ", sum(accepted[2,]), "\n")
+    
+      for(i in 1:length(current.values)) {
+        ratio <- sum(accepted[i,]) / length(accepted[i,])
+        if (ratio > 0.6) {
+            steps[i] <- steps[i] * (1 + 2 * (ratio - 0.6) / 0.4)
+        }
+        if (ratio < 0.4) {
+            steps[i] <- steps[i] / (1 + 2 * ((0.4 - ratio) / 0.4))
+        }
+        steps[i] <- min(steps[i], 0.1 * (upper.bounds[i] - lower.bounds[i]))
+    
+        #cat(sprintf("%f, %f\n", ratio, step[i]))
       }
-      steps[i] <- min(steps[i], 0.1 * (upper.bounds[i] - lower.bounds[i]))
-  
-      #cat(sprintf("%f, %f\n", ratio, step[i]))
     }
+  } else {#HMC method
+    if(is.null(gradFun)){stop("ERROR: You must pass a gradient method for HMC. line 165")}
+    ret <- makeHmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradFun)
+    current.values <- ret$new.values
+    #stop("Got to line 156")
   }
-
+    # could put refined step stuff in later - look at Radford Neal's chapter section 5.4.2.4
   return(list(new.values=current.values, new.step=steps, new.ll=llFun(current.values)))
 }
 
@@ -207,7 +247,7 @@ calculateEvidence <- function(posterior.samples, prior.size) {
 }
 
 calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
-                               lower.bounds, upper.bounds) {
+                               lower.bounds, upper.bounds, gradFun, mcmcMethod) {
   # Generate the posterior samples for the given model.
 
   # Initialise an empty matrix to hold posterior samples & their loglikelihoods
@@ -230,7 +270,7 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
     # Explore around that point, updating step size as we go
     llMin <- min(ordered.samples[1,])
     ret <- explore(ordered.samples[2:nrow(ordered.samples),selected.point], 
-           steps, llMin, llFun, lower.bounds, upper.bounds)
+           steps, llMin, llFun, lower.bounds, upper.bounds, gradFun, mcmcMethod)
     steps <- ret$new.step
     new.point <- ret$new.values
     new.ll <- ret$new.ll
@@ -245,7 +285,7 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
   return(posterior.samples)
 }
 
-nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, steps=NULL) {
+nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, gradient=NULL, steps=NULL, mcmcMethod=NULL) {
   # Perform nested sampling for the given model (expressed through the log
   # likelihood function).
   #
@@ -290,7 +330,7 @@ nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, steps=N
   }
   # Generate the posterior samples
   posterior.samples <- calculatePosterior(posterior.size, ordered.samples,
-    steps, llFun, lower.bounds, upper.bounds)
+    steps, llFun, lower.bounds, upper.bounds, gradient, mcmcMethod)
 
   # Calculate the evidence from the posterior samples
   logZ <- calculateEvidence(posterior.samples, prior.size)
