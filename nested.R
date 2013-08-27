@@ -53,7 +53,7 @@ makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper
   nick <- current.values # without this my code can break!! (current.values sometimes set to NA with many problems esp.llMin not existing)
   leapfrogSteps <- 10# number of leapfrog steps in HMC
   Loop = 20#100 number of iterations
-  epsilon = 0.001#The stepsize to use for the leapfrog steps # NOTE: Requires lots of manual tuning along with leapfrogsteps
+  epsilon = 0.01#The stepsize to use for the leapfrog steps # NOTE: Requires lots of manual tuning along with leapfrogsteps
   grad.current.vals <- -gradE(current.values) # gradE needs to be a fn. Look into numDeriv, or work out expression for gradient e.g. dE/dt = (x-mu)/sigma^2 ??
   E <- -llFun(current.values) #may need to be -ve 
  
@@ -66,23 +66,26 @@ makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper
     new.values <- current.values
     grad.new.vals <- grad.current.vals
     for (tau in 1:leapfrogSteps) {
-      p <- p - epsilon*grad.new.vals/2
+      p <- p - epsilon*grad.new.vals/2.0 # make half step for the momentum
       new.values <- new.values + epsilon*p # Make a full step for the position
       grad.new.vals <- -gradE( new.values ) # find new gradient
-      p <- p - epsilon * grad.new.vals / 2
+      p <- p - epsilon*grad.new.vals/2.0 # make half step for the momentum
     }
-  
+    if(any(new.values < lower.bounds) + any(new.values > upper.bounds) > 0) {
+      next
+    }
     Enew.llFunscore <- -llFun(new.values)
     Hnew <- t(p)%*%p/2 + Enew.llFunscore
 
-    # Acceptance based on Metropolis criteria. Should try to simplify like Radford has it.
+    # Acceptance based on Metropolis criteria. Should try to simplify like Radford has it...
+    # if (runif(1) < exp(-dH)) {accept = 1}
     dH <- Hnew - Hcurrent
     if (dH < 0) {
-      accept =1
+      accept = 1
     } else if (runif(1) < exp(-dH)) {
-      accept =1
+      accept = 1
     } else {
-      accept =0
+      accept = 0
     }
   
     if (accept) { 
@@ -266,7 +269,7 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
 
     # Randomly select a sample that isn't the worst
     selected.point <- sample(2:prior.size, 1)
-
+    
     # Explore around that point, updating step size as we go
     llMin <- min(ordered.samples[1,])
     ret <- explore(ordered.samples[2:nrow(ordered.samples),selected.point], 
@@ -281,7 +284,6 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
     # Re-sort the samples (not very efficient, but we don't care)
     ordered.samples <- ordered.samples[,order(ordered.samples[1,])]
   }
-
   return(posterior.samples)
 }
 

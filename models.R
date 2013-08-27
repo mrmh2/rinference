@@ -8,14 +8,14 @@ sigmoidModel <- function(params, inputdata) {
   #  inputdata: A vector of the input data to be modelled.
   #
   # Returns:
-  #  The predicted data according to the model k4 + (k4 - k1) / (1 + exp(-k2 * (t - k3)))
+  #  The predicted data according to the model k4 + (k1 - k4) / (1 + exp(-k2 * (t - k3)))
 
   k1 <- params[1]
   k2 <- params[2]
   k3 <- params[3]
   k4 <- params[4]
 
-  return(k4 + (k4 - k1) / (1 + exp(-k2 * (inputdata - k3))))
+  return(k4 + (k1 - k4) / (1 + exp(-k2 * (inputdata - k3))))
 }
 
 linearModel <- function(params, inputdata) {
