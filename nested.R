@@ -32,16 +32,7 @@ makeBoundedStep <- function(current.values, step, lower.bounds, upper.bounds) {
   return(step.attempt)
 }
 
-##!!!!!!! Move to models.R. Need to pass this though from 
-# ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, posterior.samples)
-# in flowering-model.R to explore. Put check in explore that if method=HMC we have
-# this required grad function otherwise stop()
-#gradE <- function(current.values) {
-#  # Calculate gradient for HMC routine using current parameter values
-#  return(1)
-#}
-
-makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradE) {
+makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradE,llCurrent) {
   # Make random step in parameter space using HMC as given by Mackay pg 388, Algo 30.1
   # but with changes taken from http://www.cs.utoronto.ca/~radford/ham-mcmc-simple
   # Radford uses U where Mackay uses E. H = E + K. Here t(p)*p/2 = K.
@@ -55,8 +46,8 @@ makeHmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, upper
   Loop = 20#100 number of iterations
   epsilon = 0.01#The stepsize to use for the leapfrog steps # NOTE: Requires lots of manual tuning along with leapfrogsteps
   grad.current.vals <- -gradE(current.values) # gradE needs to be a fn. Look into numDeriv, or work out expression for gradient e.g. dE/dt = (x-mu)/sigma^2 ??
-  E <- -llFun(current.values) #may need to be -ve 
- 
+#  E <- -llFun(current.values) # Energy fn is -llhood
+  E <- -llCurrent
   candidate <- array(,dim=c(Loop, length(current.values) +1))#array of all (if exist) accepted params and llhoods in this HMC run
 
   # HMC loop
@@ -133,7 +124,7 @@ makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, uppe
   return(list(accepted=accepted, new.values=current.values))
 }
 
-explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bounds, gradFun=NULL, mcmcMethod=NULL) {
+explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bounds, gradFun=NULL, mcmcMethod=NULL,llCurrent=NULL) {
   # Explore parameter space around supplied point
   # returns new point and new step size
   if(is.null(mcmcMethod)){
@@ -165,8 +156,9 @@ explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bou
       }
     }
   } else {#HMC method
-    if(is.null(gradFun)){stop("ERROR: You must pass a gradient method for HMC. line 165")}
-    ret <- makeHmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradFun)
+    if(is.null(gradFun)){stop("ERROR: You must pass a gradient method for HMC. line 159")}
+    if(is.null(llCurrent)){stop("ERROR: You must pass a selected point's loglikelihood for HMC. line 160")}
+    ret <- makeHmcStep(current.values, llFun, llMin, steps, lower.bounds, upper.bounds, gradFun,llCurrent)
     current.values <- ret$new.values
     #stop("Got to line 156")
   }
@@ -269,11 +261,11 @@ calculatePosterior <- function(posterior.size, ordered.samples, steps, llFun,
 
     # Randomly select a sample that isn't the worst
     selected.point <- sample(2:prior.size, 1)
-    
+    llSelected <- ordered.samples[1,selected.point]
     # Explore around that point, updating step size as we go
     llMin <- min(ordered.samples[1,])
     ret <- explore(ordered.samples[2:nrow(ordered.samples),selected.point], 
-           steps, llMin, llFun, lower.bounds, upper.bounds, gradFun, mcmcMethod)
+           steps, llMin, llFun, lower.bounds, upper.bounds, gradFun, mcmcMethod, llSelected)
     steps <- ret$new.step
     new.point <- ret$new.values
     new.ll <- ret$new.ll
