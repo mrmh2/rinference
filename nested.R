@@ -128,8 +128,8 @@ explore <- function(current.values, steps, llMin, llFun, lower.bounds, upper.bou
   # Explore parameter space around supplied point
   # returns new point and new step size
   if(is.null(mcmcMethod)){
-  msub <- 20
-  m <- 5
+    msub <- 20
+    m <- 5
 
     for(k in 1:m) {
       accepted <- vector()
