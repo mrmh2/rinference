@@ -17,7 +17,7 @@ test_that("linearModel works", {
 test_that("sigmoidModel works", {
   x <- seq(0, 1, 0.01)
   
-  sigmoidal.params <- c(1, 10, 0.5)
+  sigmoidal.params <- c(1, 10, 0.5, 0)
   y.sigmoidal <- sigmoidModel(sigmoidal.params, x)
   #plot(x, y.sigmoidal, type='l')
 
@@ -52,9 +52,9 @@ test_that("nestedSampling works", {
   steps <- c(0.01, 0.0001)
   ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, 20, steps=steps)
   logevidence <- ret$logevidence
-  expect_equal(logevidence, -134.0461, tolerance=0.01)
+  expect_equal(logevidence, -109.1228, tolerance=0.01)
 
   ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, 20)
   logevidence <- ret$logevidence
-  expect_equal(logevidence, -101.6245, tolerance=0.01)
+  expect_equal(logevidence, -206.944512, tolerance=0.01)
 })

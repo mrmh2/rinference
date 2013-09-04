@@ -10,6 +10,11 @@ sigmoidModel <- function(params, inputdata) {
   # Returns:
   #  The predicted data according to the model k4 + (k1 - k4) / (1 + exp(-k2 * (t - k3)))
 
+  if ( length(params) != 4 ) {
+    stop("Vector of parameters must be length 4");
+  }
+
+
   k1 <- params[1]
   k2 <- params[2]
   k3 <- params[3]
@@ -28,6 +33,10 @@ linearModel <- function(params, inputdata) {
   # Returns:
   #  The predicted data according to the model y = m * x + c
 
+  if ( length(params) != 2 ) {
+    stop("Vector of parameters must be length 2");
+  }
+
   m <- params[1]
   c <- params[2]
 
@@ -43,6 +52,11 @@ quadraticModel <- function(params, inputdata) {
   #
   # Returns:
   #  The predicted data according to the model y = alpha*x^2 + beta * x + gamma
+
+  if ( length(params) != 3 ) {
+    stop("Vector of parameters must be length 3");
+  }
+
 
   alpha <- params[1]
   beta <- params[2]
