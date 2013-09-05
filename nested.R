@@ -15,20 +15,59 @@ logPlus <- function(a, b) {
   return(sum)
 }
 
-makeStep <- function(current.values, step) {
+makeStep <- function(current.values, step.vector) {
   # Make random step in parameter space
-  return(current.values + step * runif(1, -1, 1))
+  #
+  # Args:
+  #   current.values: Vector of current parameter values.
+  #   step.vector: Vector of step sizes, of the same length as the parameter
+  #                values.
+  #
+  # Returns:
+  #   New values as a vector of length number.of.parameters
+
+  stopifnot(length(current.values) == length(step.vector))
+
+  return(current.values + step.vector * runif(1, -1, 1))
 }
 
 makeBoundedStep <- function(current.values, step, lower.bounds, upper.bounds) {
+  # BROKEN, DO NOT USE
   # Make step in parameter space. If step exceeds bounds, instead pick point in
   # space randomly chosen using uniform distribution.
+  #
+  # Args:
+  #   current.values: Vector of parameter values
+  #   
   step.attempt <- makeStep(current.values, step)
+  
   # Replace value outside the bounds by randomly chosen point in parameter space
-  if((step.attempt < lower.bounds) + (step.attempt > upper.bounds) > 0) {
-    step.attempt = runif(1, lower.bounds, upper.bounds)
-  }
+#  if((step.attempt < lower.bounds) + (step.attempt > upper.bounds) > 0) {
+ #   step.attempt = runif(1, lower.bounds, upper.bounds)
+  #}
   #step.attempt[which(outside.bounds)] = runif(1, lower.bounds, upper.bounds)
+  return(step.attempt)
+}
+
+makeBoundedSingleStep <- function(current.value, step, lower.bound, upper.bound) {
+  # Make a step of single (scalar) parameter value. If step takes us outside bounds,
+  # pick point in space from uniform distribution within bounds
+  #
+  # Args:
+  #   current.value: scalar current parameter value
+  #   step: scalar step size
+  #   lower.bound: scalar lower bound
+  #   upper.bound: scalar upper bound
+  #
+  # Returns:
+  #   New parameter value
+
+  step.attempt <- current.value + step * runif(1, -1, 1)
+
+  if (step.attempt < lower.bound | step.attempt > upper.bound) {
+    step.attempt <- runif(1, lower.bound, upper.bound)
+  }
+
   return(step.attempt)
 }
 
@@ -104,18 +143,28 @@ makeMcmcStep <- function(current.values, llFun, llMin, steps, lower.bounds, uppe
   # Make single MCMC step from current.values as follows:
   # 1) Attempt step in each parameter direction
   # 2) If step is successful (ll bigger than llMin), note this
-  # 
+  #
+  # Args:
+  #   current.values: Vector of current parameter values.
+  #   llFun: Function to calculate loglikelihood from llFun(param.vector).
+  #   llMin: Current minimum loglikelihood.
+  #   steps: Vector of step values.
+  #   lower.bounds: Vector of lower bounds.
+  #   upper.bounds: Vector of upper bounds.
+  #
   # Returns:
   #   A list containing:
   #    accepted: a vector of boolean values describing whether each parameter's
   #              step was accepted
   #    new.values: a vector of the new parameter values after the step
+  
   n <- length(current.values)
   accepted <- rep(FALSE, n)
   for (i in 1:n) {
     candidate <- current.values
     # Attempt step along one axis in parameter space
-    candidate[i] <- makeBoundedStep(current.values[i], steps[i], lower.bounds[i], upper.bounds[i])
+    candidate[i] <- makeBoundedSingleStep(current.values[i], steps[i],
+                                          lower.bounds[i], upper.bounds[i])
     if(llFun(candidate) > llMin) {
       current.values <- candidate
       accepted[i] = TRUE
@@ -173,10 +222,18 @@ prior <- function(  xmin, xmax, n) {
     return( runif(n, xmin, xmax) )
 }
 
-generatePriorSamples <- function(n.samples, bounds)  {
-
-  prior.lower.bounds <- bounds[,1]
-  prior.upper.bounds <- bounds[,2]
+generatePriorSamples <- function(n.samples, prior.lower.bounds,
+                                 prior.upper.bounds)  {
+  # Generate a set of prior samples from a uniform distrubtion within specified
+  # bounds.
+  #
+  # Args:
+  #   n.samples: The number of prior samples to be generated.
+  #   prior.lower.bounds: A vector of lower bounds for the prior values.
+  #   prior.upper.bounds: A vector of upper bounds for the prior values.
+  #
+  # Returns:
+  #   Matrix of prior samples, of dimension n.params x n.samples
 
   prior.samples <- replicate(n.samples,  generateAPrior(prior.lower.bounds, prior.upper.bounds))
 
