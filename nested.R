@@ -348,9 +348,9 @@ nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, gradien
   #   prior.samples:  The samples from the prior, as a m x n matrix, where m is
   #                   the number of parameters + 1 and n is the size of the 
   #                   prior.
-  #   bounds:         The bounds of the parameter values, as a m x 2 matrix, 
-  #                   where m is the number of parameters, the first column is 
-  #                   the lower bounds and .the second the upper bounds
+  #   bounds:         The bounds of the parameter values, as a 2 x m matrix, 
+  #                   where m is the number of parameters, the first row is 
+  #                   the lower bounds and the second the upper bounds.
   #   posterior.size: The number of desired sample points in the posterior to
   #                   be calculated.
   #   steps:          A vector of the initial step sizes to use for exploring
@@ -372,8 +372,8 @@ nestedSampling <- function(llFun, prior.samples, bounds, posterior.size, gradien
   evaluated.samples = rbind(ll.values, prior.samples)
   ordered.samples <- evaluated.samples[,order(evaluated.samples[1,])]
 
-  lower.bounds <- bounds[,1]
-  upper.bounds <- bounds[,2]
+  lower.bounds <- bounds[1,]
+  upper.bounds <- bounds[2,]
 
   # If steps is not set calculate from range of bounds
   if (is.null(steps)) {

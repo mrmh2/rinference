@@ -13,7 +13,7 @@ test_that("generatePriorSamples works", {
   expect_equal(ncol(prior.samples), 100)
   expect_equal(nrow(prior.samples), 3)
   expect_true(all(prior.samples > lower.bounds))
-  expect_true(all(prior.samples < lower.bounds))
+  expect_true(all(prior.samples < upper.bounds))
 })
 
 context("Testing components")
@@ -126,7 +126,7 @@ test_that("nestedSampling works", {
 
   lower.bounds <- prior.lower.bounds
   upper.bounds <- prior.upper.bounds
-  bounds <- cbind(lower.bounds, upper.bounds)
+  bounds <- rbind(lower.bounds, upper.bounds)
   
   steps <- c(0.01, 0.0001)
   ret <- nestedSampling(linearModelLlFun, prior.samples, bounds, 20, steps=steps)
