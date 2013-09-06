@@ -14,6 +14,9 @@ test_that("generatePriorSamples works", {
   expect_equal(nrow(prior.samples), 3)
   expect_true(all(prior.samples > lower.bounds))
   expect_true(all(prior.samples < upper.bounds))
+
+  prior.samples <- generatePriorSamples(100, 0, 10)
+  expect_equal(ncol(prior.samples), 100)
 })
 
 context("Testing components")
@@ -115,7 +118,7 @@ test_that("nestedSampling works", {
   prior.size <- 10
   prior.lower.bounds <- c(0, 0)
   prior.upper.bounds <- c(0.5, 0.001)
-  prior.samples <- replicate(prior.size, generateAPrior(prior.lower.bounds, prior.upper.bounds))
+  prior.samples <- generatePriorSamples(prior.size, prior.lower.bounds, prior.upper.bounds)
 
   data <- read.csv('data/flowering-data.csv', sep=',', header=T)
 

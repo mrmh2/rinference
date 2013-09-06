@@ -235,9 +235,18 @@ generatePriorSamples <- function(n.samples, prior.lower.bounds,
   # Returns:
   #   Matrix of prior samples, of dimension n.params x n.samples
 
+  stopifnot(length(prior.lower.bounds) == length(prior.upper.bounds))
+  
   prior.samples <- replicate(n.samples,  generateAPrior(prior.lower.bounds, prior.upper.bounds))
 
-  return(prior.samples)
+  # If we only have a 1d problem, we need to ensure that we return a matrix of
+  # suitable dimensions, by default we end up with a vector, where ncol returns
+  # NULL, so we use t() to turn it into a suitably dimensioned matrix
+  if (length(prior.lower.bounds) == 1) {
+    return(t(prior.samples))
+  } else {
+    return(prior.samples)
+  }
 }
 
 generateAPrior <- function(prior.lower.bounds, prior.upper.bounds) {
