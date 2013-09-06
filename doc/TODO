@@ -1,6 +1,11 @@
 * Fix for per-parameter boundaries DONE
-* Structure code more nicely
+* Structure code more nicely DONE
 * Fix machine precision problems
 * Check logZ calculation
 * Entropy calculation
 * Where we failed to step
+
+New stuff:
+
+* Explore function stepping everywhere at once (ball)
+* Restructure
